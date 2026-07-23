@@ -41,6 +41,9 @@ dependencies {
     // Gemini ChatClient
     implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
 
+    // Step 7: PDF, DOCX, PPTX 등의 문서에서 텍스트 추출
+    implementation 'org.springframework.ai:spring-ai-tika-document-reader'
+
     // 이후 8단계 Embedding
     //implementation 'org.springframework.ai:spring-ai-starter-model-google-genai-embedding'
 
