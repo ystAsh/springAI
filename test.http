@@ -47,3 +47,9 @@ Content-Type: application/pdf
 
 < ./sample.pdf
 --DocumentBoundary--
+
+
+
+### Step 8-1 - Embedding 생성 테스트
+GET http://localhost:8080/embeddings?text=퇴직금은%20어떻게%20계산하나요
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
