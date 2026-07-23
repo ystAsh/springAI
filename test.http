@@ -34,3 +34,16 @@ Content-Type: application/json
 {
   "question": "Spring AI가 무엇인가요?"
 }
+
+
+### Step7 - 문서 업로드
+POST http://localhost:8080/documents/extract
+Authorization: Basic YWRtaW46YWRtaW4xMjM0
+Content-Type: multipart/form-data; boundary=DocumentBoundary
+
+--DocumentBoundary
+Content-Disposition: form-data; name="file"; filename="sample.pdf"
+Content-Type: application/pdf
+
+< ./sample.pdf
+--DocumentBoundary--
