@@ -21,6 +21,8 @@ import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -30,6 +32,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Value;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 @Service
 public class VectorDocumentService {
@@ -44,6 +52,11 @@ public class VectorDocumentService {
     private static final long MAX_FILE_SIZE =
             10L * 1024L * 1024L;
 
+    private final VectorStore vectorStore;
+
+    // 사용자의 질문을 문서 검색에 적합한 문장으로 변환하는 객체
+    private final QueryRewriteService queryRewriteService;
+
     // 업로드를 허용하는 파일 확장자 목록
     private static final Set<String> ALLOWED_EXTENSIONS =
             Set.of(
@@ -55,11 +68,17 @@ public class VectorDocumentService {
                     "pptx"
             );
 
-    // 문서 Chunk와 Embedding 벡터를 저장하고 검색하는 객체
-    private final VectorStore vectorStore;
-
     // 현재 로그인한 사용자의 DB 정보를 조회하는 객체
     private final CurrentUser currentUser;
+
+    // 현재 클래스의 서버 로그를 출력하는 객체
+    private static final Logger log =
+            LoggerFactory.getLogger(
+                    VectorDocumentService.class
+            );
+
+    // 업로드한 원본 문서를 저장할 최상위 폴더 경로
+    private final Path uploadRootDirectory;
 
     /*
      * =============================================================================
@@ -70,10 +89,18 @@ public class VectorDocumentService {
      */
     public VectorDocumentService(
             VectorStore vectorStore,
-            CurrentUser currentUser
+            CurrentUser currentUser,
+            QueryRewriteService queryRewriteService,
+            @Value("${app.upload.vector-document-directory}")
+            String uploadDirectory
     ) {
         this.vectorStore = vectorStore;
         this.currentUser = currentUser;
+        this.queryRewriteService = queryRewriteService;
+        this.uploadRootDirectory =
+                Path.of(uploadDirectory)
+                        .toAbsolutePath()
+                        .normalize();
     }
 
     /*
@@ -105,13 +132,21 @@ public class VectorDocumentService {
                         .getFileName()
                         .toString();
 
-        // 업로드된 전체 문서를 구분할 고유 ID를 생성한다.
         String documentId =
                 UUID.randomUUID().toString();
 
+        // 업로드된 원본 파일을 조직과 부서별 폴더에 저장한다.
+                Path storedFilePath =
+                        saveOriginalFile(
+                                file,
+                                user,
+                                documentId,
+                                safeFileName
+                        );
+
         // Apache Tika를 이용해 문서 텍스트를 추출한다.
-        String extractedText =
-                extractText(file);
+                String extractedText =
+                        extractText(file);
 
         // 추출한 전체 텍스트를 Chunk 목록으로 분할한다.
         List<String> chunks =
@@ -136,6 +171,7 @@ public class VectorDocumentService {
                             user,
                             documentId,
                             safeFileName,
+                            storedFilePath.toString(),
                             documentSecurityLevel,
                             index
                     );
@@ -182,43 +218,16 @@ public class VectorDocumentService {
             Integer requestedTopK
     ) {
 
-        // 현재 로그인한 사용자의 DB 정보를 조회한다.
-        AppUser user = currentUser.getCurrentUser();
-
-        // 검색 질문이 null이거나 빈 문자열인지 확인한다.
-        if (query == null || query.isBlank()) {
-            throw new IllegalArgumentException(
-                    "검색 질문은 비어 있을 수 없습니다."
-            );
-        }
-
         // 요청받은 topK를 안전한 범위로 변환한다.
         int topK =
                 normalizeTopK(requestedTopK);
 
-        // 현재 로그인 사용자에 맞는 권한 필터를 생성한다.
-        String filterExpression =
-                createFilterExpression(user);
-
-        // 질문, 검색 개수, 유사도 및 권한 필터를 설정한다.
-        SearchRequest searchRequest =
-                SearchRequest.builder()
-                        .query(query.trim())
-                        .topK(topK)
-                        .similarityThreshold(0.0)
-                        .filterExpression(filterExpression)
-                        .build();
-
-        // 질문과 의미가 유사하고 권한 필터를 통과한 문서를 검색한다.
+        // 권한 필터가 적용된 원본 Document 목록을 검색한다.
         List<Document> searchResults =
-                vectorStore.similaritySearch(
-                        searchRequest
+                findDocuments(
+                        query,
+                        topK
                 );
-
-        // VectorStore 구현체가 null을 반환하는 경우 빈 목록을 반환한다.
-        if (searchResults == null) {
-            return List.of();
-        }
 
         // 검색된 Document 목록을 API 응답 DTO 목록으로 변환한다.
         return searchResults.stream()
@@ -233,6 +242,127 @@ public class VectorDocumentService {
                 .toList();
     }
 
+    public List<Document> searchDocuments(
+            String query
+    ) {
+
+        // RAG에서 사용할 기본 검색 개수를 5개로 설정한다.
+        int topK = 5;
+
+        // 권한 필터가 적용된 원본 Document 목록을 반환한다.
+        return findDocuments(
+                query,
+                topK
+        );
+    }
+
+    private List<Document> findDocuments(
+            String query,
+            int topK
+    ) {
+
+        // 검색 질문이 null이거나 빈 문자열인지 확인한다.
+        if (query == null || query.isBlank()) {
+            throw new IllegalArgumentException(
+                    "검색 질문은 비어 있을 수 없습니다."
+            );
+        }
+
+        // 현재 로그인한 사용자의 DB 정보를 조회한다.
+        AppUser user =
+                currentUser.getCurrentUser();
+
+        // 현재 로그인 사용자에 맞는 권한 필터를 생성한다.
+        String filterExpression =
+                createFilterExpression(user);
+
+        // 원본 질문을 문서 검색에 적합한 질문으로 변환한다.
+        String rewrittenQuery =
+                queryRewriteService.rewrite(
+                        query.trim()
+                );
+
+        // 실제 VectorStore에 전달되는 검색 조건을 서버 로그에 출력한다.
+        log.info(
+                "VectorStore 원본 질문: {}",
+                query.trim()
+        );
+
+        log.info(
+                "VectorStore 재작성 질문: {}",
+                rewrittenQuery
+        );
+
+        log.info(
+                "VectorStore topK: {}",
+                topK
+        );
+
+        log.info(
+                "VectorStore 권한 필터: {}",
+                filterExpression
+        );
+
+        // 재작성된 질문과 권한 필터로 검색 조건을 생성한다.
+        SearchRequest searchRequest =
+                SearchRequest.builder()
+                        .query(rewrittenQuery)
+                        .topK(topK)
+                        .similarityThreshold(0.0)
+                        .filterExpression(
+                                filterExpression
+                        )
+                        .build();
+
+        // VectorStore에서 유사 문서를 검색한다.
+        List<Document> searchResults =
+                vectorStore.similaritySearch(
+                        searchRequest
+                );
+
+        // VectorStore 구현체가 null을 반환하면 빈 목록을 반환한다.
+        if (searchResults == null) {
+
+            log.warn(
+                    "VectorStore 검색 결과가 null입니다."
+            );
+
+            return List.of();
+        }
+
+        // 검색된 문서 개수를 서버 로그에 출력한다.
+        log.info(
+                "VectorStore 검색 결과 개수: {}",
+                searchResults.size()
+        );
+
+        // 검색된 각 문서의 정보를 서버 로그에 출력한다.
+        for (Document document : searchResults) {
+
+            log.info(
+                    "검색 문서 ID: {}",
+                    document.getId()
+            );
+
+            log.info(
+                    "검색 문서 점수: {}",
+                    document.getScore()
+            );
+
+            log.info(
+                    "검색 문서 메타데이터: {}",
+                    document.getMetadata()
+            );
+
+            log.info(
+                    "검색 문서 내용: {}",
+                    document.getText()
+            );
+        }
+
+        return searchResults;
+    }
+
     /*
      * =============================================================================
      * 메서드명 : createMetadata
@@ -242,6 +372,7 @@ public class VectorDocumentService {
             AppUser user,
             String documentId,
             String fileName,
+            String storedFilePath,
             int securityLevel,
             int chunkIndex
     ) {
@@ -296,6 +427,12 @@ public class VectorDocumentService {
         metadata.put(
                 "chunkIndex",
                 chunkIndex
+        );
+
+        // 서버 폴더에 저장된 원본 파일의 경로를 저장한다.
+        metadata.put(
+                "storedFilePath",
+                storedFilePath
         );
 
         return metadata;
@@ -744,5 +881,113 @@ public class VectorDocumentService {
         return value
                 .replace("\\", "\\\\")
                 .replace("'", "\\'");
+    }
+
+    private Path saveOriginalFile(
+            MultipartFile file,
+            AppUser user,
+            String documentId,
+            String safeFileName
+    ) {
+
+        try {
+            // 조직 ID를 안전한 폴더 이름으로 변환한다.
+            String organizationDirectoryName =
+                    sanitizeDirectoryName(
+                            user.getOrganizationId()
+                    );
+
+            // 부서 ID를 안전한 폴더 이름으로 변환한다.
+            String departmentDirectoryName =
+                    sanitizeDirectoryName(
+                            user.getDepartmentId()
+                    );
+
+            // 조직과 부서별 저장 폴더 경로를 생성한다.
+            Path documentDirectory =
+                    uploadRootDirectory
+                            .resolve(
+                                    organizationDirectoryName
+                            )
+                            .resolve(
+                                    departmentDirectoryName
+                            )
+                            .normalize();
+
+            // 생성된 경로가 업로드 최상위 폴더 밖으로 벗어나지 않는지 검사한다.
+            if (!documentDirectory.startsWith(
+                    uploadRootDirectory
+            )) {
+                throw new SecurityException(
+                        "올바르지 않은 문서 저장 경로입니다."
+                );
+            }
+
+            // 폴더가 없으면 조직과 부서 폴더를 생성한다.
+            Files.createDirectories(
+                    documentDirectory
+            );
+
+            // UUID와 원본 파일명을 결합해 중복되지 않는 저장 파일명을 만든다.
+            String storedFileName =
+                    documentId
+                            + "_"
+                            + safeFileName;
+
+            // 실제 저장 대상 경로를 생성한다.
+            Path targetPath =
+                    documentDirectory
+                            .resolve(storedFileName)
+                            .normalize();
+
+            // 저장 대상이 허용된 문서 폴더 밖으로 벗어나는지 확인한다.
+            if (!targetPath.startsWith(
+                    documentDirectory
+            )) {
+                throw new SecurityException(
+                        "올바르지 않은 파일 저장 경로입니다."
+                );
+            }
+
+            // 업로드 파일의 내용을 실제 폴더에 복사한다.
+            Files.copy(
+                    file.getInputStream(),
+                    targetPath,
+                    StandardCopyOption.REPLACE_EXISTING
+            );
+
+            log.info(
+                    "원본 문서 저장 완료: {}",
+                    targetPath
+            );
+
+            return targetPath;
+
+        } catch (IOException exception) {
+            throw new IllegalStateException(
+                    "업로드 파일을 폴더에 저장하지 못했습니다.",
+                    exception
+            );
+        }
+    }
+
+    private String sanitizeDirectoryName(
+            String value
+    ) {
+
+        // 조직 또는 부서 정보가 없는 경우 저장을 중단한다.
+        if (value == null || value.isBlank()) {
+            throw new IllegalStateException(
+                    "문서 저장에 필요한 조직 또는 부서 정보가 없습니다."
+            );
+        }
+
+        // 영문, 숫자, 하이픈, 밑줄을 제외한 문자를 밑줄로 변경한다.
+        return value
+                .trim()
+                .replaceAll(
+                        "[^a-zA-Z0-9_-]",
+                        "_"
+                );
     }
 }

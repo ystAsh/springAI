@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
 
@@ -7,7 +8,7 @@
             name="viewport"
             content="width=device-width, initial-scale=1.0">
 
-    <title>Spring AI Chat</title>
+    <title>Spring AI RAG Chat</title>
 
     <link
             rel="stylesheet"
@@ -19,9 +20,14 @@
 <div class="chat-layout">
 
     <header class="chat-header">
+
         <div>
-            <h1>Spring AI Chat</h1>
-            <p>Gemini와 대화하고 결과를 저장합니다.</p>
+            <h1>Spring AI RAG Chat</h1>
+
+            <p>
+                문서를 업로드하고,
+                업로드한 문서를 기반으로 질문할 수 있습니다.
+            </p>
         </div>
 
         <form
@@ -35,19 +41,174 @@
                 로그아웃
             </button>
         </form>
+
     </header>
+
+
+    <section class="document-section">
+
+        <div class="section-title">
+
+            <div>
+                <h2>문서 업로드</h2>
+
+                <p>
+                    PDF, TXT, DOC, DOCX, PPT, PPTX 파일을 업로드할 수 있습니다.
+                </p>
+            </div>
+
+        </div>
+
+
+        <form
+                id="documentUploadForm"
+                class="document-upload-form">
+
+            <div class="upload-field">
+
+                <label
+                        for="documentFile"
+                        class="input-label">
+
+                    업로드 파일
+                </label>
+
+                <input
+                        id="documentFile"
+                        name="file"
+                        type="file"
+                        accept=".pdf,.txt,.doc,.docx,.ppt,.pptx"
+                        required>
+
+            </div>
+
+
+            <div class="upload-field security-field">
+
+                <label
+                        for="securityLevel"
+                        class="input-label">
+
+                    문서 보안등급
+                </label>
+
+                <select
+                        id="securityLevel"
+                        name="securityLevel">
+
+                    <option value="1">1등급</option>
+                    <option value="2">2등급</option>
+                    <option value="3">3등급</option>
+                    <option value="4">4등급</option>
+                    <option value="5">5등급</option>
+
+                </select>
+
+            </div>
+
+
+            <div class="upload-button-area">
+
+                <button
+                        id="uploadButton"
+                        type="submit">
+
+                    문서 업로드
+                </button>
+
+            </div>
+
+        </form>
+
+
+        <div
+                id="uploadStatus"
+                class="upload-status"
+                aria-live="polite">
+        </div>
+
+
+        <div class="uploaded-document-area">
+
+            <div class="uploaded-document-header">
+
+                <h3>현재 브라우저 업로드 기록</h3>
+
+                <button
+                        id="clearDocumentHistoryButton"
+                        type="button"
+                        class="secondary-button">
+
+                    기록 지우기
+                </button>
+
+            </div>
+
+
+            <div
+                    id="emptyDocumentMessage"
+                    class="empty-document-message">
+
+                아직 업로드한 문서가 없습니다.
+            </div>
+
+
+            <div
+                    id="uploadedDocumentList"
+                    class="uploaded-document-list">
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <section class="rag-guide-section">
+
+        <h2>사용 방법</h2>
+
+        <ol>
+            <li>먼저 회사 문서 파일을 업로드합니다.</li>
+            <li>업로드 성공 메시지를 확인합니다.</li>
+            <li>아래 질문 입력창에서 문서 내용에 관해 질문합니다.</li>
+            <li>AI 답변 아래 참고 문서 이름을 확인합니다.</li>
+        </ol>
+
+    </section>
+
 
     <main
             id="messageList"
             class="message-list">
+        <section class="conversation-toolbar">
+
+            <div>
+                <h2>대화 내역</h2>
+
+                <p>
+                    현재 로그인 사용자의 질문과 AI 답변입니다.
+                </p>
+            </div>
+
+            <button
+                    id="clearConversationButton"
+                    type="button"
+                    class="clear-conversation-button">
+
+                대화 내역 지우기
+            </button>
+
+        </section>
 
         <div
                 id="emptyMessage"
                 class="empty-message">
 
-            질문을 입력하면 대화가 시작됩니다.
+            문서를 업로드한 다음 질문을 입력해 주세요.
         </div>
+
     </main>
+
 
     <section class="input-section">
 
@@ -65,12 +226,16 @@
                     name="question"
                     maxlength="4000"
                     rows="4"
-                    placeholder="Gemini에게 질문을 입력하세요."
+                    placeholder="예: 우리 회사의 연차 사용 규정은 어떻게 되나요?"
                     required></textarea>
+
 
             <div class="input-footer">
 
-                <span id="statusMessage"></span>
+                <span
+                        id="statusMessage"
+                        aria-live="polite">
+                </span>
 
                 <button
                         id="sendButton"
@@ -78,6 +243,7 @@
 
                     질문하기
                 </button>
+
             </div>
 
         </form>
@@ -86,7 +252,9 @@
 
 </div>
 
+
 <script src="/js/chat.js"></script>
 
 </body>
+
 </html>
