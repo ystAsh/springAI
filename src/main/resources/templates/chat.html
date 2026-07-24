@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1.0">
+
+    <title>Spring AI Chat</title>
+
+    <link
+            rel="stylesheet"
+            href="/css/chat.css">
+</head>
+
+<body>
+
+<div class="chat-layout">
+
+    <header class="chat-header">
+        <div>
+            <h1>Spring AI Chat</h1>
+            <p>Gemini와 대화하고 결과를 저장합니다.</p>
+        </div>
+
+        <form
+                action="/logout"
+                method="post">
+
+            <button
+                    type="submit"
+                    class="logout-button">
+
+                로그아웃
+            </button>
+        </form>
+    </header>
+
+    <main
+            id="messageList"
+            class="message-list">
+
+        <div
+                id="emptyMessage"
+                class="empty-message">
+
+            질문을 입력하면 대화가 시작됩니다.
+        </div>
+    </main>
+
+    <section class="input-section">
+
+        <form id="chatForm">
+
+            <label
+                    for="questionInput"
+                    class="input-label">
+
+                질문
+            </label>
+
+            <textarea
+                    id="questionInput"
+                    name="question"
+                    maxlength="4000"
+                    rows="4"
+                    placeholder="Gemini에게 질문을 입력하세요."
+                    required></textarea>
+
+            <div class="input-footer">
+
+                <span id="statusMessage"></span>
+
+                <button
+                        id="sendButton"
+                        type="submit">
+
+                    질문하기
+                </button>
+            </div>
+
+        </form>
+
+    </section>
+
+</div>
+
+<script src="/js/chat.js"></script>
+
+</body>
+</html>

@@ -49,7 +49,29 @@ Content-Type: application/pdf
 --DocumentBoundary--
 
 
-
 ### Step 8-1 - Embedding 생성 테스트
 GET http://localhost:8080/embeddings?text=퇴직금은%20어떻게%20계산하나요
 Authorization: Basic YWRtaW46YWRtaW4xMjM0
+
+
+### 문서 업로드
+POST http://localhost:8080/api/vector-documents/upload
+Authorization: Basic admin admin1234
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="securityLevel"
+
+3
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="test-policy.txt"
+Content-Type: text/plain
+
+회사 보안 규정입니다.
+관리자만 접근 가능합니다.
+--WebAppBoundary--
+
+### 문서 검색
+GET http://localhost:8080/api/vector-documents/search?query=관리자
+Authorization: Basic admin admin1234
+Accept: application/json

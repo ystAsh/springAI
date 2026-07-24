@@ -44,8 +44,17 @@ dependencies {
     // Step 7: PDF, DOCX, PPTX 등의 문서에서 텍스트 추출
     implementation 'org.springframework.ai:spring-ai-tika-document-reader'
 
-    // 이후 8단계 Embedding
+    // Step 8: Embedding
     implementation 'org.springframework.ai:spring-ai-starter-model-google-genai-embedding'
+
+    // Step 9: VectorStore 권한
+    implementation 'org.springframework.ai:spring-ai-vector-store'
+    implementation 'org.apache.tika:tika-core'
+    implementation 'org.apache.tika:tika-parsers-standard-package'
+
+    // 브라우저
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
 
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 

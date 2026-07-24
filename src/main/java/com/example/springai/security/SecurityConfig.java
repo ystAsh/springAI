@@ -3,7 +3,9 @@
  * 클래스명 : SecurityConfig
  * =============================================================================
  * 목적
- *  - URL별 인증 및 접근 권한을 설정하는 클래스
+ *  - URL별 인증 및 접근 권한을 설정한다.
+ *  - 브라우저 로그인과 HTTP Basic 인증을 함께 지원한다.
+ *  - 로그인 성공 후 Spring AI 대화 화면으로 이동한다.
  */
 
 package com.example.springai.security;
@@ -19,51 +21,85 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
-    /* 비밀번호 암호화 객체를 등록한다. */
+    // 비밀번호 암호화 객체를 등록한다.
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+        return PasswordEncoderFactories
+                .createDelegatingPasswordEncoder();
     }
 
-    /* HTTP 요청별 인증 규칙을 설정한다. */
+    // HTTP 요청별 인증 규칙을 설정한다.
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
-            throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
 
         http
-                /* REST API 테스트를 위해 CSRF 비활성화 */
-                .csrf(csrf -> csrf.disable())
-
-                /* URL별 접근 권한 설정 */
-                .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(
-                                "/",
-                                "/error",
-                                "/login",
-                                "/h2-console/**"
-                        ).permitAll()
-
-                        /* 로그인한 사용자만 접근 가능 */
-                        .requestMatchers(
-                                "/chat/**",
-                                "/me",
-                                "/permission/**",
-                                "/conversations/**"
-                        ).authenticated()
-
-                        .anyRequest()
-                        .permitAll()
+                // 현재 REST API 테스트를 위해 CSRF를 비활성화한다.
+                .csrf(csrf ->
+                        csrf.disable()
                 )
 
-                /* H2 콘솔의 frame 사용 허용 */
-                .headers(headers -> headers
-                        .frameOptions(frameOptions ->
-                                frameOptions.sameOrigin()
+                // URL별 접근 권한을 설정한다.
+                .authorizeHttpRequests(authorize ->
+                        authorize
+                                .requestMatchers(
+                                        "/",
+                                        "/error",
+                                        "/login",
+                                        "/css/**",
+                                        "/js/**",
+                                        "/images/**",
+                                        "/h2-console/**"
+                                )
+                                .permitAll()
+
+                                .requestMatchers(
+                                        "/chat",
+                                        "/chat/**",
+                                        "/api/chat/**",
+                                        "/me",
+                                        "/permission/**",
+                                        "/conversations/**",
+                                        "/api/vector-documents/**"
+                                )
+                                .authenticated()
+
+                                .anyRequest()
+                                .permitAll()
+                )
+
+                // H2 콘솔의 frame 사용을 허용한다.
+                .headers(headers ->
+                        headers.frameOptions(
+                                frameOptions ->
+                                        frameOptions.sameOrigin()
                         )
                 )
 
-                /* HTTP Basic 인증 사용 */
-                .httpBasic(Customizer.withDefaults());
+                // 브라우저 로그인 성공 후 대화 화면으로 이동한다.
+                .formLogin(form ->
+                        form
+                                .defaultSuccessUrl(
+                                        "/chat",
+                                        true
+                                )
+                                .permitAll()
+                )
+
+                // test.http의 Basic 인증을 허용한다.
+                .httpBasic(
+                        Customizer.withDefaults()
+                )
+
+                // 로그아웃 성공 후 로그인 화면으로 이동한다.
+                .logout(logout ->
+                        logout
+                                .logoutSuccessUrl(
+                                        "/login?logout"
+                                )
+                                .permitAll()
+                );
 
         return http.build();
     }

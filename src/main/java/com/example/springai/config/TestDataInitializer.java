@@ -1,49 +1,53 @@
+/*
+ * =============================================================================
+ * 클래스명 : TestDataInitializer
+ * =============================================================================
+ * 목적
+ *  - 애플리케이션 실행 시 테스트용 사용자 데이터를 생성한다.
+ */
+
 package com.example.springai.config;
 
 import com.example.springai.entity.AppUser;
 import com.example.springai.repository.AppUserRepository;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 
-@Configuration
-public class TestDataInitializer {
+@Component
+public class TestDataInitializer implements CommandLineRunner {
 
-    @Bean
-    public CommandLineRunner initializeUsers(
+    private final AppUserRepository appUserRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    public TestDataInitializer(
             AppUserRepository appUserRepository,
-            PasswordEncoder passwordEncoder) {
+            PasswordEncoder passwordEncoder
+    ) {
+        this.appUserRepository = appUserRepository;
+        this.passwordEncoder = passwordEncoder;
+    }
 
-        return args -> {
+    @Override
+    public void run(String... args) {
 
-            if (appUserRepository.findByUsername("admin").isEmpty()) {
+        if (appUserRepository.findByUsername("admin").isEmpty()) {
 
-                AppUser admin = new AppUser(
-                        "admin",
-                        passwordEncoder.encode("admin1234"),
-                        "ADMIN",
-                        "COMPANY01",
-                        "IT",
-                        5
-                );
+            AppUser admin = new AppUser();
 
-                appUserRepository.save(admin);
-            }
+            admin.setUsername("admin");
 
-            if (appUserRepository.findByUsername("user1").isEmpty()) {
+            // 비밀번호를 암호화하여 저장한다.
+            admin.setPassword(
+                    passwordEncoder.encode("admin1234")
+            );
 
-                AppUser user = new AppUser(
-                        "user1",
-                        passwordEncoder.encode("user1234"),
-                        "USER",
-                        "COMPANY01",
-                        "SALES",
-                        2
-                );
+            admin.setRole("ADMIN");
+            admin.setOrganizationId("ORG001");
+            admin.setDepartmentId("ADMIN");
+            admin.setSecurityLevel(5);
 
-                appUserRepository.save(user);
-            }
-        };
+            appUserRepository.save(admin);
+        }
     }
 }
