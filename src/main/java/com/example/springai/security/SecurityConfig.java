@@ -5,7 +5,7 @@
  * 목적
  *  - URL별 인증 및 접근 권한을 설정한다.
  *  - 브라우저 로그인과 HTTP Basic 인증을 함께 지원한다.
- *  - 로그인 성공 후 Spring AI 대화 화면으로 이동한다.
+ *  - 로그인 성공 시 기존 대화를 삭제하고 Spring AI 대화 화면으로 이동한다.
  */
 
 package com.example.springai.security;
@@ -31,7 +31,9 @@ public class SecurityConfig {
     // HTTP 요청별 인증 규칙을 설정한다.
     @Bean
     public SecurityFilterChain securityFilterChain(
-            HttpSecurity http
+            HttpSecurity http,
+            CustomAuthenticationSuccessHandler
+                    customAuthenticationSuccessHandler
     ) throws Exception {
 
         http
@@ -77,12 +79,11 @@ public class SecurityConfig {
                         )
                 )
 
-                // 브라우저 로그인 성공 후 대화 화면으로 이동한다.
+                // 로그인 성공 시 기존 대화를 삭제하는 성공 핸들러를 실행한다.
                 .formLogin(form ->
                         form
-                                .defaultSuccessUrl(
-                                        "/chat",
-                                        true
+                                .successHandler(
+                                        customAuthenticationSuccessHandler
                                 )
                                 .permitAll()
                 )

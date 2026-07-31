@@ -114,7 +114,6 @@ questionInput.addEventListener(
     }
 );
 
-
 async function initializePage() {
 
     renderUploadedDocuments();
