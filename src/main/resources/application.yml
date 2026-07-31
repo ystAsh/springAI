@@ -6,9 +6,9 @@ spring:
   # MSSQL Primary Database
   # ===============================
   datasource:
-    url: "jdbc:sqlserver://localhost:1433;databaseName=enterprise_ai;encrypt=true;trustServerCertificate=true"
-    username: enterprise_ai_app
-    password: "EnterpriseAi!2026App"
+    url: ${MSSQL_URL:jdbc:sqlserver://localhost:1433;databaseName=enterprise_ai;encrypt=true;trustServerCertificate=true}
+    username: ${MSSQL_USERNAME:enterprise_ai_app}
+    password: ${MSSQL_PASSWORD}
 
   # ===============================
   # JPA
@@ -63,4 +63,4 @@ spring:
 
 app:
   upload:
-    vector-document-directory: ./uploads/vector-documents
+    vector-document-directory: ${VECTOR_DOCUMENT_DIRECTORY:./uploads/vector-documents}
