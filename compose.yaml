@@ -1,3 +1,5 @@
+name: springai
+
 services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -5,12 +7,35 @@ services:
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
-      MSSQL_SA_PASSWORD: "SpringAi!2026Pass"
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
     ports:
       - "1433:1433"
     volumes:
       - mssql-data:/var/opt/mssql
     restart: unless-stopped
 
+  postgres-vector:
+    image: pgvector/pgvector:pg17
+    container_name: enterprise-ai-pgvector
+    environment:
+      POSTGRES_DB: enterprise_ai_vector
+      POSTGRES_USER: vector_app
+      POSTGRES_PASSWORD: ${VECTOR_DB_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgvector-data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U vector_app -d enterprise_ai_vector"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
 volumes:
   mssql-data:
+  pgvector-data:

@@ -96,16 +96,9 @@ public class AiChatService {
         }
 
         log.info(
-                "AiChatService 검색 문서 개수: {}",
+                "Document RAG 검색 완료. documentCount={}",
                 documents.size()
         );
-
-        for (Document document : documents) {
-            log.info(
-                    "AiChatService 검색 문서 내용: {}",
-                    document.getText()
-            );
-        }
 
         if (documents.isEmpty()) {
             return """
@@ -118,11 +111,6 @@ public class AiChatService {
 
         String context =
                 createContext(documents);
-        // Gemini에게 실제로 전달되는 문서 내용을 확인한다.
-        log.info(
-                "Gemini 전달 Context:\n{}",
-                context
-        );
 
         String answer =
                 chatClient.prompt()
@@ -134,10 +122,9 @@ public class AiChatService {
                         .call()
                         .content();
 
-        // Gemini가 생성한 원본 답변을 확인한다.
-        log.info(
-                "Gemini 생성 답변:\n{}",
-                answer
+        log.debug(
+                "Gemini 답변 생성 완료. answerLength={}",
+                answer == null ? 0 : answer.length()
         );
 
         if (!StringUtils.hasText(answer)) {

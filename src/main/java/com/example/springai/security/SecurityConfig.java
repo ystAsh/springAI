@@ -51,8 +51,7 @@ public class SecurityConfig {
                                         "/login",
                                         "/css/**",
                                         "/js/**",
-                                        "/images/**",
-                                        "/h2-console/**"
+                                        "/images/**"
                                 )
                                 .permitAll()
 
@@ -68,15 +67,7 @@ public class SecurityConfig {
                                 .authenticated()
 
                                 .anyRequest()
-                                .permitAll()
-                )
-
-                // H2 콘솔의 frame 사용을 허용한다.
-                .headers(headers ->
-                        headers.frameOptions(
-                                frameOptions ->
-                                        frameOptions.sameOrigin()
-                        )
+                                .authenticated()
                 )
 
                 // 로그인 성공 시 기존 대화를 삭제하는 성공 핸들러를 실행한다.
