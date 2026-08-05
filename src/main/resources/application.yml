@@ -56,15 +56,32 @@ spring:
             model: gemini-embedding-001
             dimensions: 768
 
+  # ===============================
+  # Multipart Upload
+  # ===============================
   servlet:
     multipart:
-      max-file-size: 20MB
-      max-request-size: 20MB
+      max-file-size: 10MB
+      max-request-size: 10MB
 
+# ===============================
+# Application Custom Settings
+# ===============================
 app:
+  # PostgreSQL Vector Database
+  datasource:
+    vector:
+      url: ${VECTOR_DB_URL:jdbc:postgresql://localhost:5433/enterprise_ai_vector}
+      username: ${VECTOR_DB_USERNAME:vector_app}
+      password: ${VECTOR_DB_PASSWORD}
+      driver-class-name: org.postgresql.Driver
+
+  # Document Upload
   upload:
     vector-document-directory: ${VECTOR_DOCUMENT_DIRECTORY:./uploads/vector-documents}
+    max-file-size-bytes: 10485760
 
+  # Document RAG
   rag:
     document:
       similarity-threshold: 0.65

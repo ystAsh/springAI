@@ -5,6 +5,7 @@
  * 목적
  *  - URL별 인증 및 접근 권한을 설정한다.
  *  - 브라우저 로그인과 HTTP Basic 인증을 함께 지원한다.
+ *  - 브라우저 세션 요청은 CSRF로 보호한다.
  *  - 로그인 성공 시 기존 대화를 삭제하고 Spring AI 대화 화면으로 이동한다.
  */
 
@@ -21,14 +22,12 @@ import org.springframework.security.web.SecurityFilterChain;
 @Configuration
 public class SecurityConfig {
 
-    // 비밀번호 암호화 객체를 등록한다.
     @Bean
     public PasswordEncoder passwordEncoder() {
         return PasswordEncoderFactories
                 .createDelegatingPasswordEncoder();
     }
 
-    // HTTP 요청별 인증 규칙을 설정한다.
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
@@ -37,12 +36,21 @@ public class SecurityConfig {
     ) throws Exception {
 
         http
-                // 현재 REST API 테스트를 위해 CSRF를 비활성화한다.
+                /*
+                 * 브라우저 formLogin과 일반 웹 요청에는
+                 * Spring Security의 CSRF 보호를 유지한다.
+                 *
+                 * 현재 test.http와 HTTP Basic으로 호출하는 REST API만
+                 * 임시로 CSRF 검사 대상에서 제외한다.
+                 */
                 .csrf(csrf ->
-                        csrf.disable()
+                        csrf.ignoringRequestMatchers(
+                                "/api/**",
+                                "/conversations/**",
+                                "/permission/**"
+                        )
                 )
 
-                // URL별 접근 권한을 설정한다.
                 .authorizeHttpRequests(authorize ->
                         authorize
                                 .requestMatchers(
@@ -70,7 +78,6 @@ public class SecurityConfig {
                                 .authenticated()
                 )
 
-                // 로그인 성공 시 기존 대화를 삭제하는 성공 핸들러를 실행한다.
                 .formLogin(form ->
                         form
                                 .successHandler(
@@ -79,12 +86,10 @@ public class SecurityConfig {
                                 .permitAll()
                 )
 
-                // test.http의 Basic 인증을 허용한다.
                 .httpBasic(
                         Customizer.withDefaults()
                 )
 
-                // 로그아웃 성공 후 로그인 화면으로 이동한다.
                 .logout(logout ->
                         logout
                                 .logoutSuccessUrl(

@@ -4,27 +4,35 @@ services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: spring-ai-mssql
+
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Developer"
-      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD}
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?MSSQL_SA_PASSWORD 환경변수가 필요합니다}
+
     ports:
       - "1433:1433"
+
     volumes:
       - mssql-data:/var/opt/mssql
+
     restart: unless-stopped
 
   postgres-vector:
     image: pgvector/pgvector:pg17
     container_name: enterprise-ai-pgvector
+
     environment:
       POSTGRES_DB: enterprise_ai_vector
       POSTGRES_USER: vector_app
-      POSTGRES_PASSWORD: ${VECTOR_DB_PASSWORD}
+      POSTGRES_PASSWORD: ${VECTOR_DB_PASSWORD:?VECTOR_DB_PASSWORD 환경변수가 필요합니다}
+
     ports:
       - "5433:5432"
+
     volumes:
       - pgvector-data:/var/lib/postgresql/data
+
     healthcheck:
       test:
         [
@@ -34,6 +42,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+      start_period: 20s
+
     restart: unless-stopped
 
 volumes:

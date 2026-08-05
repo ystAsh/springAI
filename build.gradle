@@ -23,32 +23,41 @@ ext {
 }
 
 dependencies {
+    // Spring Web / UI
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
     implementation 'org.springframework.boot:spring-boot-starter-validation'
     implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    // Database
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-jdbc'
 
     // Flyway
     implementation 'org.springframework.boot:spring-boot-starter-flyway'
     implementation 'org.flywaydb:flyway-sqlserver'
 
-    // MSSQL JDBC Driver
+    // JDBC Drivers
     runtimeOnly 'com.microsoft.sqlserver:mssql-jdbc'
-
-    // Spring AI
-    implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
-    implementation 'org.springframework.ai:spring-ai-tika-document-reader'
-    implementation 'org.springframework.ai:spring-ai-starter-model-google-genai-embedding'
-
-    implementation 'org.springframework.ai:spring-ai-starter-vector-store-pgvector'
     runtimeOnly 'org.postgresql:postgresql'
 
+    // Spring AI - Gemini
+    implementation 'org.springframework.ai:spring-ai-starter-model-google-genai'
+    implementation 'org.springframework.ai:spring-ai-starter-model-google-genai-embedding'
+
+    // Spring AI - Document / Vector
+    implementation 'org.springframework.ai:spring-ai-tika-document-reader'
+    implementation 'org.springframework.ai:spring-ai-starter-vector-store-pgvector'
+
+    // Apache Tika direct usage
     implementation 'org.apache.tika:tika-core'
     implementation 'org.apache.tika:tika-parsers-standard-package'
 
+    // Development
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
 
+    // Test
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-data-jpa-test'
     testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
     testImplementation 'org.springframework.security:spring-security-test'
