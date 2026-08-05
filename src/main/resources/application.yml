@@ -64,3 +64,7 @@ spring:
 app:
   upload:
     vector-document-directory: ${VECTOR_DOCUMENT_DIRECTORY:./uploads/vector-documents}
+
+  rag:
+    document:
+      similarity-threshold: 0.65
